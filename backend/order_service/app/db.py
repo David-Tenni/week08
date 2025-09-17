@@ -1,5 +1,5 @@
 # week08/backend/order_service/app/db.py
-#scary action
+#scary acstion
 import os
 
 from sqlalchemy import create_engine
