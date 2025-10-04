@@ -86,6 +86,30 @@ jobs:
         run: |
           pytest tests --maxfail=1 --disable-warnings -q
 
+      - name: SonarCloud Scan - Product Service
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.sources=backend/product_service
+            -Dsonar.python.version=3.10
+
+      - name: SonarCloud Scan - Order Service
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.sources=backend/order_service
+            -Dsonar.python.version=3.10
+
   build_and_push_images:
     runs-on: ubuntu-latest
     needs: test_and_lint_backends
@@ -102,14 +126,54 @@ jobs:
     - name: Login to Azure Container Registry
       run: az acr login --name ${{ secrets.ACR_NAME }}
 
-    - name: Build and Push Product Service Image
+    - name: Build Product Service Image
       run: |
         docker build -t ${{ env.ACR_LOGIN_SERVER }}/product_service:latest ./backend/product_service/
+
+    - name: Trivy Scan - Product Service Image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.ACR_LOGIN_SERVER }}/product_service:latest
+        format: 'table'
+        exit-code: '1'
+        severity: 'CRITICAL,HIGH'
+        vuln-type: 'os,library'
+
+    - name: Docker Scout Scan - Product Service
+      uses: docker/scout-action@v1
+      with:
+        command: cves
+        image: ${{ env.ACR_LOGIN_SERVER }}/product_service:latest
+        only-severities: critical,high
+        exit-code: true
+
+    - name: Push Product Service Image
+      run: |
         docker push ${{ env.ACR_LOGIN_SERVER }}/product_service:latest
 
-    - name: Build and Push Order Service Image
+    - name: Build Order Service Image
       run: |
         docker build -t ${{ env.ACR_LOGIN_SERVER }}/order_service:latest ./backend/order_service/
+
+    - name: Trivy Scan - Order Service Image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.ACR_LOGIN_SERVER }}/order_service:latest
+        format: 'table'
+        exit-code: '1'
+        severity: 'CRITICAL,HIGH'
+        vuln-type: 'os,library'
+
+    - name: Docker Scout Scan - Order Service
+      uses: docker/scout-action@v1
+      with:
+        command: cves
+        image: ${{ env.ACR_LOGIN_SERVER }}/order_service:latest
+        only-severities: critical,high
+        exit-code: true
+
+    - name: Push Order Service Image
+      run: |
         docker push ${{ env.ACR_LOGIN_SERVER }}/order_service:latest
 
     - name: Logout from Azure

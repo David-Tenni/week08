@@ -1,28 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: product-service-w08e1
+  name: product-db-deployment-w08e1
   labels:
-    app: product-service
+    app: product-db
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: product-service
+      app: product-db
   template:
     metadata:
       labels:
-        app: product-service
+        app: product-db
     spec:
       containers:
-      - name: product-service-container
-        image: sit722s224096074acr.azurecr.io/product_service:latest
-        imagePullPolicy: Always
+      - name: postgres
+        image: postgres:15-alpine
         ports:
-        - containerPort: 8000
+        - containerPort: 5432
         env:
-        - name: POSTGRES_HOST
-          value: product-db-service-w08e1
         - name: POSTGRES_DB
           valueFrom:
             configMapKeyRef:
@@ -38,38 +35,18 @@ spec:
             secretKeyRef:
               name: ecomm-secrets-w08e1
               key: POSTGRES_PASSWORD
-        - name: AZURE_STORAGE_ACCOUNT_NAME
-          valueFrom:
-            secretKeyRef:
-              name: ecomm-secrets-w08e1
-              key: AZURE_STORAGE_ACCOUNT_NAME
-        - name: AZURE_STORAGE_ACCOUNT_KEY
-          valueFrom:
-            secretKeyRef:
-              name: ecomm-secrets-w08e1
-              key: AZURE_STORAGE_ACCOUNT_KEY
-        - name: AZURE_STORAGE_CONTAINER_NAME
-          valueFrom:
-            configMapKeyRef:
-              name: ecomm-config-w08e1
-              key: AZURE_STORAGE_CONTAINER_NAME
-        - name: AZURE_SAS_TOKEN_EXPIRY_HOURS
-          valueFrom:
-            configMapKeyRef:
-              name: ecomm-config-w08e1
-              key: AZURE_SAS_TOKEN_EXPIRY_HOURS
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: product-service-w08e1
+  name: product-db-service-w08e1
   labels:
-    app: product-service
+    app: product-db
 spec:
   selector:
-    app: product-service
+    app: product-db
   ports:
     - protocol: TCP
-      port: 8000
-      targetPort: 8000
-  type: LoadBalancer
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP
