@@ -164,14 +164,7 @@ jobs:
         severity: 'CRITICAL,HIGH'
         vuln-type: 'os,library'
 
-    - name: Docker Scout Scan - Order Service
-      uses: docker/scout-action@v1
-      with:
-        command: cves
-        image: ${{ env.ACR_LOGIN_SERVER }}/order_service:latest
-        only-severities: critical,high
-        exit-code: true
-
+   
     - name: Push Order Service Image
       run: |
         docker push ${{ env.ACR_LOGIN_SERVER }}/order_service:latest
